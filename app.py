@@ -71,16 +71,20 @@ if page == "Vue d'ensemble":
     # Vérifier que la liste des filtres contient les éléments nécessaires
     if len(troncon_filter) == 3:
         # Créer un en-tête dynamique
-        st.header(f"Vue d'ensemble : {troncon_filter[0]} - {troncon_filter[1]} - {troncon_filter[2]}")
+        secteur=f" {troncon_filter[0]} - {troncon_filter[1]} - {troncon_filter[2]}"
+        st.header(f"Vue d'ensemble : {secteur}")
     elif len(troncon_filter) == 2:
+        secteur=f" {troncon_filter[0]} - {troncon_filter[1]}"
         st.header(f"Vue d'ensemble : {troncon_filter[0]}-{troncon_filter[1]}")
     elif len(troncon_filter) == 1:
         st.header(f"Vue d'ensemble : {troncon_filter[0]}")
+        secteur=f" {troncon_filter[0]}"
     else:
         st.header("Vue d'ensemble : Tronçons non spécifiés correctement")
+        secteur=""
     # st.write("Aperçu des données filtrées:")
     st.write("LA PATROUILLE:")
-    st.write(f" Distance totale parcourue: :red[{distance_totale}] Km")
+    st.write(f" Distance totale parcourue: :red[{distance_totale}] Km sur {secteur}")
     distance_secteur_chart = filtered_data.groupby("SECTEUR")["DISTANCE PARCOURUE"].sum().reset_index()
     # Trier les données par ordre décroissant de 'NOMBRE'
     distance_secteur_chart_sorted = distance_secteur_chart.sort_values(by='DISTANCE PARCOURUE', ascending=False)
@@ -108,7 +112,7 @@ if page == "Vue d'ensemble":
     
     ################################################# event ###############################################
     st.write("LES EVENEMENTS:")
-    st.write(f" Nombre Total Evenement: :red[{nbre_total_event}] ")
+    st.write(f" Nombre Total Evenement: :red[{nbre_total_event}]  sur  {secteur}")
 
     event_secteur_chart = filtered_trace.groupby("SECTEUR LIEU")["SECTEUR LIEU"].count().reset_index(name='NOMBRE')
       # Créer le bar chart avec Altair
@@ -134,7 +138,7 @@ if page == "Vue d'ensemble":
     y=alt.Y('NOMBRE', axis=alt.Axis(format='~s')),
     # color=alt.Color('SECTEUR LIEU', scale=alt.Scale(scheme='tableau10'))
     ).properties(
-    title='Evolution  Nombre  evénèments:'
+    title=f"Evolution  Nombre  evénèments  :{secteur}"
     ) 
     st.altair_chart(chart6, use_container_width=True)
 
@@ -154,7 +158,7 @@ if page == "Vue d'ensemble":
         color=alt.Color('NATURE EVENEMENT:N'),
         # column=alt.Column('SECTEUR LIEU:N', title='Secteur')
     ).properties(
-        title='Evolution Nature des Evènements'
+        title=f"Evolution Nature des Evènements : {secteur}"
     ).configure_axis(
         labelAngle=0,
     )
@@ -167,7 +171,7 @@ if page == "Vue d'ensemble":
     print(nature_event_secteur_chart1)
         # Créer le graphique à barres côte à côte
     chart10 = alt.Chart(nature_event_secteur_chart1).mark_bar().encode(
-        x=alt.X('NATURE EVENEMENT:N', axis=alt.Axis(title='Secteur'),scale=alt.Scale(paddingInner=0)),
+        x=alt.X('NATURE EVENEMENT:N', axis=alt.Axis(title=f"Secteur {secteur}"),scale=alt.Scale(paddingInner=0)),
         y=alt.Y('NOMBRE:Q', axis=alt.Axis(title='Nombre')),
         color=alt.Color('NATURE EVENEMENT:N'),
         # column=alt.Column('SECTEUR LIEU:N', title='Secteur')
@@ -188,13 +192,13 @@ if page == "Vue d'ensemble":
 
         # Créer le graphique à barres côte à côte
     chart4 = alt.Chart(event_statut_secteur_chart).mark_bar().encode(
-        x=alt.X('STATUT REMORQUAGE OU PATROUILLE:N', axis=alt.Axis(title='Secteur'),scale=alt.Scale(paddingInner=0)),
+        x=alt.X('STATUT REMORQUAGE OU PATROUILLE:N', axis=alt.Axis(title=f"Secteur {secteur}"),scale=alt.Scale(paddingInner=0)),
         y=alt.Y('NOMBRE:Q', axis=alt.Axis(title='Nombre')),
         color=alt.Color('STATUT REMORQUAGE OU PATROUILLE:N'),
         # column=alt.Column('SECTEUR LIEU:N', title='SECTEUR')
     ).properties(
         width=100,
-        title='Répartition des evenements par statut'
+        title=f'Répartition des evenements par statut : {secteur}'
     ).configure_axis(
         labelAngle=0,
     )
