@@ -1,10 +1,10 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 import seaborn as sns
 import altair as alt
-import locale
+
 
 # Paramétrer la locale en français pour formater les dates
 # locale.setlocale(locale.LC_TIME, 'fr_FR.UTF-8')

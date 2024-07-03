@@ -1,4 +1,6 @@
 pandas
+seaborn
+matplotlib
 altair
 streamlit
 openpyxl
