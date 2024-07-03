@@ -134,7 +134,7 @@ if page == "Vue d'ensemble":
     y=alt.Y('NOMBRE', axis=alt.Axis(format='~s')),
     # color=alt.Color('SECTEUR LIEU', scale=alt.Scale(scheme='tableau10'))
     ).properties(
-    title='Evolution des evénèments:'
+    title='Evolution  Nombre  evénèments:'
     ) 
     st.altair_chart(chart6, use_container_width=True)
 
@@ -143,11 +143,30 @@ if page == "Vue d'ensemble":
     #-------------------------------------------------------nature EVENT-----------------------------------------
     st.write(f"Nature Evenement :")
 
-    nature_event_secteur_chart = filtered_trace.groupby("NATURE EVENEMENT")["NATURE EVENEMENT"].count().reset_index(name="NOMBRE")
+    nature_event_secteur_chart = filtered_trace.groupby(['DATE_FR',"NATURE EVENEMENT"])["NATURE EVENEMENT"].count().reset_index(name="NOMBRE")
 
     print(nature_event_secteur_chart)
         # Créer le graphique à barres côte à côte
-    chart3 = alt.Chart(nature_event_secteur_chart).mark_bar().encode(
+    chart3 = alt.Chart(nature_event_secteur_chart).mark_line().encode(
+        # x=alt.X('NATURE EVENEMENT:N', axis=alt.Axis(title='Secteur'),scale=alt.Scale(paddingInner=0)),
+        x=alt.X('DATE_FR', axis=alt.Axis(labelAngle=0)),
+        y=alt.Y('NOMBRE:Q', axis=alt.Axis(title='Nombre')),
+        color=alt.Color('NATURE EVENEMENT:N'),
+        # column=alt.Column('SECTEUR LIEU:N', title='Secteur')
+    ).properties(
+        title='Evolution Nature des Evènements'
+    ).configure_axis(
+        labelAngle=0,
+    )
+    st.altair_chart(chart3, use_container_width=True)
+
+    st.write(f"Nature Evenement :")
+
+    nature_event_secteur_chart1 = filtered_trace.groupby("NATURE EVENEMENT")["NATURE EVENEMENT"].count().reset_index(name="NOMBRE")
+
+    print(nature_event_secteur_chart1)
+        # Créer le graphique à barres côte à côte
+    chart10 = alt.Chart(nature_event_secteur_chart1).mark_bar().encode(
         x=alt.X('NATURE EVENEMENT:N', axis=alt.Axis(title='Secteur'),scale=alt.Scale(paddingInner=0)),
         y=alt.Y('NOMBRE:Q', axis=alt.Axis(title='Nombre')),
         color=alt.Color('NATURE EVENEMENT:N'),
@@ -157,7 +176,7 @@ if page == "Vue d'ensemble":
     ).configure_axis(
         labelAngle=0,
     )
-    st.altair_chart(chart3, use_container_width=True)
+    st.altair_chart(chart10, use_container_width=True)
     #-------------------------------------------------------------------------------------------------
 
 
