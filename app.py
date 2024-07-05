@@ -10,19 +10,24 @@ import altair as alt
 # Fonction pour générer des données simulées
 
 def generate_trace_data():
+    month_names = [
+    'janvier', 'février', 'mars', 'avril', 'mai', 'juin',
+    'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'
+    ]
     pat=pd.read_excel('data/PAT/PAT-JUIN-2024.xlsx')
     pat[pat.isna()]=0
     trace=pd.read_excel('data/TRACE/EVENT-JUIN-2024.xlsx')
     accident=pd.read_excel('data/TRACE/ACCI-JUIN-2024.xlsx')
 
     pat['DATE_FR'] = pat['DATE'].dt.strftime('%d/%m/%Y')
-    pat['MOIS'] = pat['DATE'].dt.strftime('%B')
+    pat['MOIS'] = pat['DATE'].dt.month.apply(lambda x: month_names[x-1])
+
 
     trace['DATE_FR'] = trace['DATE'].dt.strftime('%d/%m/%Y')
-    trace['MOIS'] = trace['DATE'].dt.strftime('%B')
+    trace['MOIS'] = trace['DATE'].dt.month.apply(lambda x: month_names[x-1])
 
     accident['DATE_FR'] = accident['DATE'].dt.strftime('%d/%m/%Y')
-    accident['MOIS'] = accident['DATE'].dt.strftime('%B')
+    accident['MOIS'] = accident['DATE'].dt.month.apply(lambda x: month_names[x-1])
     
     return pat,trace,accident
 
