@@ -376,7 +376,7 @@ elif page == "Carburant":
     mois_filter = st.sidebar.multiselect("Sélectionnez la période",options=carburant['MOIS'].unique(),default=carburant["MOIS"].unique())
     # Ordre des mois
     month_order = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre']
-    # carburant['MOIS'] = pd.Categorical(carburant['MOIS'], categories=month_order, ordered=True)
+    carburant['MOIS'] = pd.Categorical(carburant['MOIS'], categories=month_order, ordered=True)
     
     filtered_carburant = carburant[(carburant["ANNEE"].isin(annee_filter)) & (carburant["MOIS"].isin(mois_filter))]
    
