@@ -102,7 +102,7 @@ page = st.sidebar.radio("Aller à", ["Suivi Tracé","Carburant",""])
 if page == "Suivi Tracé":
     st.sidebar.title("Filtres")
     troncon_filter = st.sidebar.multiselect("Sélectionnez le tronçon", options=pat["SECTEUR"].unique(), default=pat["SECTEUR"].unique())
-    date_filter = st.sidebar.multiselect("Sélectionnez la période",options=pat['MOIS'].unique())
+    date_filter = st.sidebar.multiselect("Sélectionnez la période",options=pat['MOIS'].unique(),default=pat["MOIS"].unique())
 
 # date_filter = st.sidebar.date_input("Sélectionnez la période", value=[data["date"].min(), data["date"].max()])
     # start_date = pd.to_datetime(date_filter[0])
