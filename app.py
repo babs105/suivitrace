@@ -5,7 +5,10 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import altair as alt
 import locale
-# locale.setlocale(locale.LC_TIME, 'fr_FR.UTF-8')
+# 
+# 
+# 
+locale.setlocale(locale.LC_TIME, 'fr_FR.UTF-8')
 
 # Fonction pour générer des données simulées
 
