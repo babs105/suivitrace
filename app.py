@@ -4,8 +4,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import altair as alt
-import locale
-locale.setlocale(locale.LC_TIME, 'fr_FR.UTF-8')
+# import locale
+# locale.setlocale(locale.LC_TIME, 'fr_FR.UTF-8')
 
 # Fonction pour générer des données simulées
 
@@ -67,7 +67,14 @@ def generate_carburant_data():
     ])
     carburant['Date']=pd.to_datetime(carburant['Date'], format='%d/%m/%Y')
     carburant['ANNEE'] = carburant['Date'].dt.strftime('%Y')
-    carburant['MOIS'] = carburant['Date'].dt.strftime('%B')
+
+# Extraire le mois en tant que colonne séparée avec les noms des mois en français
+    month_names = [
+    'janvier', 'février', 'mars', 'avril', 'mai', 'juin',
+    'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'
+]
+    carburant['MOIS'] = carburant['Date'].dt.month.apply(lambda x: month_names[x-1])
+    # carburant['MOIS'] = carburant['Date'].dt.strftime('%B')
 
 
     return carburant
