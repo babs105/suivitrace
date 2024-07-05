@@ -4,29 +4,81 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import altair as alt
-
-
-# Paramétrer la locale en français pour formater les dates
-# locale.setlocale(locale.LC_TIME, 'fr_FR.UTF-8')
+import locale
+locale.setlocale(locale.LC_TIME, 'fr_FR.UTF-8')
 
 # Fonction pour générer des données simulées
 
-def generate_toll_data():
-    data=pd.read_excel('data/PAT/PAT-JUIN-2024.xlsx')
-    data[data.isna()]=0
+def generate_trace_data():
+    pat=pd.read_excel('data/PAT/PAT-JUIN-2024.xlsx')
+    pat[pat.isna()]=0
     trace=pd.read_excel('data/TRACE/EVENT-JUIN-2024.xlsx')
     accident=pd.read_excel('data/TRACE/ACCI-JUIN-2024.xlsx')
+
+    pat['DATE_FR'] = pat['DATE'].dt.strftime('%d/%m/%Y')
+    pat['MOIS'] = pat['DATE'].dt.strftime('%B')
+
+    trace['DATE_FR'] = trace['DATE'].dt.strftime('%d/%m/%Y')
+    trace['MOIS'] = trace['DATE'].dt.strftime('%B')
+
+    accident['DATE_FR'] = accident['DATE'].dt.strftime('%d/%m/%Y')
+    accident['MOIS'] = accident['DATE'].dt.strftime('%B')
     
-    return data,trace,accident
+    return pat,trace,accident
+
+def generate_carburant_data():
+
+    carbu241=pd.read_excel('data/CARBURANT/2024/RAPPORT-01-2024.xlsx')
+    carbu242=pd.read_excel('data/CARBURANT/2024/RAPPORT-02-2024.xlsx')
+    carbu243=pd.read_excel('data/CARBURANT/2024/RAPPORT-03-2024.xlsx')
+    carbu244=pd.read_excel('data/CARBURANT/2024/RAPPORT-04-2024.xlsx')
+    carbu245=pd.read_excel('data/CARBURANT/2024/RAPPORT-05-2024.xlsx')
+    carbu246=pd.read_excel('data/CARBURANT/2024/RAPPORT-06-2024.xlsx')
+
+    carbu231=pd.read_excel('data/CARBURANT/2023/RAPPORT-01-2023.xlsx')
+    carbu232=pd.read_excel('data/CARBURANT/2023/RAPPORT-02-2023.xlsx')
+    carbu233=pd.read_excel('data/CARBURANT/2023/RAPPORT-03-2023.xlsx')
+    carbu234=pd.read_excel('data/CARBURANT/2023/RAPPORT-04-2023.xlsx')
+    carbu235=pd.read_excel('data/CARBURANT/2023/RAPPORT-05-2023.xlsx')
+    carbu236=pd.read_excel('data/CARBURANT/2023/RAPPORT-06-2023.xlsx')
+    carbu237=pd.read_excel('data/CARBURANT/2023/RAPPORT-07-2023.xlsx')
+    carbu238=pd.read_excel('data/CARBURANT/2023/RAPPORT-08-2023.xlsx')
+    carbu239=pd.read_excel('data/CARBURANT/2023/RAPPORT-09-2023.xlsx')
+    carbu2310=pd.read_excel('data/CARBURANT/2023/RAPPORT-10-2023.xlsx')
+    carbu2311=pd.read_excel('data/CARBURANT/2023/RAPPORT-11-2023.xlsx')
+    carbu2312=pd.read_excel('data/CARBURANT/2023/RAPPORT-12-2023.xlsx')
+
+    carbu221=pd.read_excel('data/CARBURANT/2022/RAPPORT-01-2022.xlsx')
+    carbu222=pd.read_excel('data/CARBURANT/2022/RAPPORT-02-2022.xlsx')
+    carbu223=pd.read_excel('data/CARBURANT/2022/RAPPORT-03-2022.xlsx')
+    carbu224=pd.read_excel('data/CARBURANT/2022/RAPPORT-04-2022.xlsx')
+    carbu225=pd.read_excel('data/CARBURANT/2022/RAPPORT-05-2022.xlsx')
+    carbu226=pd.read_excel('data/CARBURANT/2022/RAPPORT-06-2022.xlsx')
+    carbu227=pd.read_excel('data/CARBURANT/2022/RAPPORT-07-2022.xlsx')
+    carbu228=pd.read_excel('data/CARBURANT/2022/RAPPORT-08-2022.xlsx')
+    carbu229=pd.read_excel('data/CARBURANT/2022/RAPPORT-09-2022.xlsx')
+    carbu2210=pd.read_excel('data/CARBURANT/2022/RAPPORT-10-2022.xlsx')
+    carbu2211=pd.read_excel('data/CARBURANT/2022/RAPPORT-11-2022.xlsx')
+    carbu2212=pd.read_excel('data/CARBURANT/2022/RAPPORT-12-2022.xlsx')
+
+    carburant = pd.concat([carbu241,carbu242,carbu243,carbu244,carbu245,carbu246,
+    carbu231,carbu232,carbu233,carbu234,carbu235,carbu236,carbu237,carbu238,carbu239,carbu2310,carbu2311,carbu2312,
+    carbu221,carbu222,carbu223,carbu224,carbu225,carbu226,carbu227,carbu228,carbu229,carbu2210,carbu2211,carbu2212
+    ])
+    carburant['Date']=pd.to_datetime(carburant['Date'], format='%d/%m/%Y')
+    carburant['ANNEE'] = carburant['Date'].dt.strftime('%Y')
+    carburant['MOIS'] = carburant['Date'].dt.strftime('%B')
+
+
+    return carburant
 
 
 
 # Charger les données
-data,trace,accident = generate_toll_data()
+pat,trace,accident = generate_trace_data()
+carburant = generate_carburant_data()
 # Ajouter une colonne avec les dates formatées en français
-data['DATE_FR'] = data['DATE'].dt.strftime('%d/%m/%Y')
-trace['DATE_FR'] = trace['DATE'].dt.strftime('%d/%m/%Y')
-accident['DATE_FR'] = accident['DATE'].dt.strftime('%d/%m/%Y')
+
 # print(trace.head())
 
 # Configuration de la page
@@ -41,33 +93,41 @@ st.title("RAPPORT MOIS DE JUIN AUTOROUTE A PEAGE")
 # Barre latérale pour la navigation et les filtres
 st.sidebar.title("Navigation")
 # page = st.sidebar.radio("Aller à", ["Vue d'ensemble", "Analyse par tronçon", "Données brutes"])
-page = st.sidebar.radio("Aller à", ["Vue d'ensemble",])
+page = st.sidebar.radio("Aller à", ["Suivi Tracé","Carburant",""])
 
-# Filtres
-st.sidebar.title("Filtres")
-troncon_filter = st.sidebar.multiselect("Sélectionnez le tronçon", options=data["SECTEUR"].unique(), default=data["SECTEUR"].unique())
-date_filter = st.sidebar.date_input("Sélectionnez la période", value=[data["DATE"].min(), data["DATE"].max()])
-# date_filter = st.sidebar.date_input("Sélectionnez la période", value=[data["date"].min(), data["date"].max()])
-start_date = pd.to_datetime(date_filter[0])
-end_date = pd.to_datetime(date_filter[1])
-# Filtrer les données
-filtered_data = data[(data["SECTEUR"].isin(troncon_filter)) & (data["DATE"].between(start_date, end_date))]
-distance_totale = filtered_data["DISTANCE PARCOURUE"].sum()
-
-
-filtered_trace = trace[(trace["SECTEUR LIEU"].isin(troncon_filter)) & (trace["DATE"].between(start_date, end_date))]
-filtered_trace["NATURE EVENEMENT"] = filtered_trace["NATURE EVENEMENT"].where(filtered_trace["NATURE EVENEMENT"].isin(['ACCIDENT', 'PANNE','INCIDENT','VEHICULE EN FEU']),other="AUTRES")
-
-nbre_total_event = filtered_trace["SECTEUR LIEU"].count()
-filtered_trace_rom = filtered_trace[filtered_trace['STATUT REMORQUAGE OU PATROUILLE']=="remorqué"]
-nbre_total_rom = filtered_trace.loc[filtered_trace['STATUT REMORQUAGE OU PATROUILLE']=="remorqué","STATUT REMORQUAGE OU PATROUILLE"].count()
-
-filtered_accident = accident[(accident["TRONÇON"].isin(troncon_filter)) & (accident["DATE"].between(start_date, end_date))]
-nbre_total_acci = filtered_accident['TRONÇON'].count()
+   
 
 # print("test",filtered_trace.head())
 # Page: Vue d'ensemble
-if page == "Vue d'ensemble":
+if page == "Suivi Tracé":
+    st.sidebar.title("Filtres")
+    troncon_filter = st.sidebar.multiselect("Sélectionnez le tronçon", options=pat["SECTEUR"].unique(), default=pat["SECTEUR"].unique())
+    date_filter = st.sidebar.multiselect("Sélectionnez la période",options=pat['MOIS'].unique())
+
+# date_filter = st.sidebar.date_input("Sélectionnez la période", value=[data["date"].min(), data["date"].max()])
+    # start_date = pd.to_datetime(date_filter[0])
+    # end_date = pd.to_datetime(date_filter[1])
+    # Filtrer les données
+    # filtered_pat = pat[(pat["SECTEUR"].isin(troncon_filter)) & (pat["DATE"].between(start_date, end_date))]
+    filtered_pat = pat[(pat["SECTEUR"].isin(troncon_filter)) & (pat["MOIS"].isin(date_filter))]
+
+    distance_totale = filtered_pat["DISTANCE PARCOURUE"].sum()
+
+
+    # filtered_trace = trace[(trace["SECTEUR LIEU"].isin(troncon_filter)) & (trace["DATE"].between(start_date, end_date))]
+    filtered_trace = trace[(trace["SECTEUR LIEU"].isin(troncon_filter)) & (trace["MOIS"].isin(date_filter))]
+
+    filtered_trace["NATURE EVENEMENT"] = filtered_trace["NATURE EVENEMENT"].where(filtered_trace["NATURE EVENEMENT"].isin(['ACCIDENT', 'PANNE','INCIDENT','VEHICULE EN FEU']),other="AUTRES")
+
+    nbre_total_event = filtered_trace["SECTEUR LIEU"].count()
+    filtered_trace_rom = filtered_trace[filtered_trace['STATUT REMORQUAGE OU PATROUILLE']=="remorqué"]
+    nbre_total_rom = filtered_trace.loc[filtered_trace['STATUT REMORQUAGE OU PATROUILLE']=="remorqué","STATUT REMORQUAGE OU PATROUILLE"].count()
+
+    # filtered_accident = accident[(accident["TRONÇON"].isin(troncon_filter)) & (accident["DATE"].between(start_date, end_date))]
+    filtered_accident = accident[(accident["TRONÇON"].isin(troncon_filter)) & (accident["MOIS"].isin(date_filter))]
+    nbre_total_acci = filtered_accident['TRONÇON'].count()
+
+
     # Vérifier que la liste des filtres contient les éléments nécessaires
     if len(troncon_filter) == 3:
         # Créer un en-tête dynamique
@@ -83,9 +143,21 @@ if page == "Vue d'ensemble":
         st.header("Vue d'ensemble : Tronçons non spécifiés correctement")
         secteur=""
     # st.write("Aperçu des données filtrées:")
-    st.write("LA PATROUILLE:")
-    st.write(f" Distance totale parcourue: :red[{distance_totale}] Km sur {secteur}")
-    distance_secteur_chart = filtered_data.groupby("SECTEUR")["DISTANCE PARCOURUE"].sum().reset_index()
+    st.write("LA PATROUILLE :")
+
+    distance_chart = filtered_pat.groupby("MOIS")["DISTANCE PARCOURUE"].sum().reset_index()
+     # Créer le bar chart avec Altair
+    distparmois = alt.Chart(distance_chart).mark_bar().encode(
+    x=alt.X('MOIS', axis=alt.Axis(labelAngle=0)),
+    y=alt.Y('DISTANCE PARCOURUE', axis=alt.Axis(format='~s')),
+    # color='DATE'
+    ).properties(
+    title='Evolution Distance Parcourue en (km) par mois:'
+    ) 
+    st.altair_chart(distparmois, use_container_width=True)
+
+    st.write(f" Distance totale parcourue: :red[{distance_totale} Km ] sur {secteur}")
+    distance_secteur_chart = filtered_pat.groupby("SECTEUR")["DISTANCE PARCOURUE"].sum().reset_index()
     # Trier les données par ordre décroissant de 'NOMBRE'
     distance_secteur_chart_sorted = distance_secteur_chart.sort_values(by='DISTANCE PARCOURUE', ascending=False)
 
@@ -99,7 +171,7 @@ if page == "Vue d'ensemble":
     ) 
     st.altair_chart(chart, use_container_width=True)
 
-    distance_chart = filtered_data.groupby("DATE_FR")["DISTANCE PARCOURUE"].sum().reset_index()
+    distance_chart = filtered_pat.groupby("DATE_FR")["DISTANCE PARCOURUE"].sum().reset_index()
      # Créer le bar chart avec Altair
     chart1 = alt.Chart(distance_chart).mark_line().encode(
     x=alt.X('DATE_FR', axis=alt.Axis(labelAngle=0)),
@@ -296,8 +368,74 @@ if page == "Vue d'ensemble":
 
 
 # Page: Analyse par tronçon
-elif page == "Analyse par tronçon":
-    st.header("Analyse par tronçon")
+elif page == "Carburant":
+    st.header("Carburant")
+    st.sidebar.title("Filtres")
+    annee_filter = st.sidebar.multiselect("Sélectionnez l'année",options=carburant['ANNEE'].unique(),default=carburant["ANNEE"].unique())
+    # troncon_filter = st.sidebar.multiselect("Sélectionnez le tronçon", options=pat["SECTEUR"].unique(), default=pat["SECTEUR"].unique())
+    mois_filter = st.sidebar.multiselect("Sélectionnez la période",options=carburant['MOIS'].unique(),default=carburant["MOIS"].unique())
+    # Ordre des mois
+    month_order = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre']
+    # carburant['MOIS'] = pd.Categorical(carburant['MOIS'], categories=month_order, ordered=True)
+    
+    filtered_carburant = carburant[(carburant["ANNEE"].isin(annee_filter)) & (carburant["MOIS"].isin(mois_filter))]
+   
+    carbu_chart = filtered_carburant.groupby(["ANNEE","MOIS"])["Quantite"].sum().reset_index()
+     # Créer le bar chart avec Altair
+    carbuparyear1 = alt.Chart(carbu_chart).mark_bar().encode(
+    x=alt.X('ANNEE',sort=month_order,axis=alt.Axis(labelAngle=-45)),
+    y=alt.Y('Quantite', axis=alt.Axis(format='~s')),
+    # color=alt.Color('ANNEE:N', scale=alt.Scale(scheme='tableau10')),
+    # column=alt.Column('ANNEE:N', title='Année')
+   ).properties(
+    title='Evolution Consommation Carburant en (L) par Année et Mois',
+
+    )
+    st.altair_chart(carbuparyear1, use_container_width=True)
+
+
+
+    carbu_chart = filtered_carburant.groupby(["ANNEE","MOIS"])["Quantite"].sum().reset_index()
+     # Créer le bar chart avec Altair
+    carbuparyear = alt.Chart(carbu_chart).mark_bar().encode(
+    x=alt.X('MOIS',sort=month_order,axis=alt.Axis(labelAngle=-45)),
+    y=alt.Y('Quantite', axis=alt.Axis(format='~s')),
+    color=alt.Color('ANNEE:N', scale=alt.Scale(scheme='tableau10')),
+    # column=alt.Column('ANNEE:N', title='Année')
+   ).properties(
+    title='Evolution Consommation Carburant en (L) par Année et Mois',
+
+    )
+
+    st.altair_chart(carbuparyear, use_container_width=True)
+
+    carbu_chart = filtered_carburant.groupby(["MOIS"])["Quantite"].sum().reset_index()
+
+
+        # Déterminer les valeurs min et max
+    min_value = carbu_chart['Quantite'].min()
+    max_value = carbu_chart['Quantite'].max()
+
+    # # Ajouter une colonne pour la couleur
+    def color_code(row):
+        if row['Quantite'] == min_value:
+            return 'Min'
+        elif row['Quantite'] == max_value:
+            return 'Max'
+        else:
+            return 'Normal'
+
+    carbu_chart['Color'] = carbu_chart.apply(color_code, axis=1)
+     # Créer le bar chart avec Altair
+    carbuparmois = alt.Chart(carbu_chart).mark_bar().encode(
+    x=alt.X('MOIS',sort=month_order,axis=alt.Axis(labelAngle=0)),
+    y=alt.Y('Quantite', axis=alt.Axis(format='~s')),
+    color=alt.Color('Color', scale=alt.Scale(domain=['Min', 'Max', 'Normal'], range=['green', 'red', 'steelblue']))
+    # column=alt.Column('ANNEE', title='ANNEE')
+    ).properties(
+    title='Evolution Consommation Carburant en (L) par mois:'
+    ) 
+    st.altair_chart(carbuparmois, use_container_width=True)
     
     # Graphiques par tronçon
     # for troncon in troncon_filter:
