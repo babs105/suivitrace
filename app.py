@@ -723,7 +723,7 @@ elif page == "Carburant":
     bars = alt.Chart(carbu_chart).mark_bar().encode(
     x=alt.X('MOIS',sort=month_order,axis=alt.Axis(labelAngle=0)),
     y=alt.Y('Quantite', axis=alt.Axis(format='~d')),
-    color=alt.Color('Conso', scale=alt.Scale(domain=['Min', 'Max', 'Normal'], range=['green', 'red', 'steelblue']))
+    color=alt.Color('Conso', scale=alt.Scale(domain=['Min', 'Max', 'Normal'], range=['green', 'red', 'blue']))
     # column=alt.Column('ANNEE', title='ANNEE')
     ).properties(
     title='Evolution Consommation Carburant en (L) par mois:'
