@@ -96,7 +96,7 @@ carburant = generate_carburant_data()
 st.set_page_config(page_title="Tableau de Bord ",layout="wide")
 
 # Titre principal
-st.title("RAPPORT MOIS DE JUIN AUTOROUTE A PEAGE")
+st.title("RAPPORT AUTOROUTE A PEAGE")
 
 # Barre latérale pour la navigation et les filtres
 st.sidebar.title("Navigation")
