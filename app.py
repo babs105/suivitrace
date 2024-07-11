@@ -15,17 +15,18 @@ def generate_trace_data():
     'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'
     ]
     pat=pd.read_excel('data/PAT/PAT-JUIN-2024.xlsx')
-    pat[pat.isna()]=0
-    trace=pd.read_excel('data/TRACE/EVENT-JUIN-2024.xlsx')
-    accident=pd.read_excel('data/TRACE/ACCI-JUIN-2024.xlsx')
-
+    pat[pat.isna()] = 0
     pat['DATE_FR'] = pat['DATE'].dt.strftime('%d/%m/%Y')
     pat['MOIS'] = pat['DATE'].dt.month.apply(lambda x: month_names[x-1])
 
-
+    tracemai = pd.read_excel('data/TRACE/EVENT-MAI-2024.xlsx')
+    # print("test",tracemai)
+    tracejuin = pd.read_excel('data/TRACE/EVENT-JUIN-2024.xlsx')
+    trace = pd.concat([tracemai,tracejuin])
     trace['DATE_FR'] = trace['DATE'].dt.strftime('%d/%m/%Y')
     trace['MOIS'] = trace['DATE'].dt.month.apply(lambda x: month_names[x-1])
 
+    accident=pd.read_excel('data/TRACE/ACCI-JUIN-2024.xlsx')
     accident['DATE_FR'] = accident['DATE'].dt.strftime('%d/%m/%Y')
     accident['MOIS'] = accident['DATE'].dt.month.apply(lambda x: month_names[x-1])
     
@@ -110,7 +111,7 @@ page = st.sidebar.radio("Aller à", ["Suivi Tracé","Carburant",""])
 if page == "Suivi Tracé":
     st.sidebar.title("Filtres")
     troncon_filter = st.sidebar.multiselect("Sélectionnez le tronçon", options=pat["SECTEUR"].unique(), default=pat["SECTEUR"].unique())
-    date_filter = st.sidebar.multiselect("Sélectionnez la période",options=pat['MOIS'].unique(),default=pat["MOIS"].unique())
+    date_filter = st.sidebar.multiselect("Sélectionnez la période",options=trace['MOIS'].unique(),default=trace["MOIS"].unique())
 
 # date_filter = st.sidebar.date_input("Sélectionnez la période", value=[data["date"].min(), data["date"].max()])
     # start_date = pd.to_datetime(date_filter[0])
@@ -120,8 +121,6 @@ if page == "Suivi Tracé":
     filtered_pat = pat[(pat["SECTEUR"].isin(troncon_filter)) & (pat["MOIS"].isin(date_filter))]
 
     distance_totale = filtered_pat["DISTANCE PARCOURUE"].sum()
-
-
     # filtered_trace = trace[(trace["SECTEUR LIEU"].isin(troncon_filter)) & (trace["DATE"].between(start_date, end_date))]
     filtered_trace = trace[(trace["SECTEUR LIEU"].isin(troncon_filter)) & (trace["MOIS"].isin(date_filter))]
 
@@ -236,8 +235,8 @@ if page == "Suivi Tracé":
     st.altair_chart(chart, use_container_width=True)
 
   
-    
-    ################################################# event ###############################################
+    #### **** event *** ############ **** event **** ####### **** #####
+    ########################################### **** event **** #######################################
     st.write("LES EVENEMENTS:")
     st.write(f" Nombre Total Evenement: :red[{nbre_total_event}]  sur  {secteur}")
 
@@ -275,7 +274,7 @@ if page == "Suivi Tracé":
     text = bars.mark_text(
     align='center',
     baseline='middle',
-    dy=-20,  # Déplace l'étiquette au-dessus de la barre
+    dy=-25,  # Déplace l'étiquette au-dessus de la barre
     color='yellow',
     fontSize=14
     ).encode(
@@ -292,7 +291,7 @@ if page == "Suivi Tracé":
         text='Flèche:N',
         color=alt.Color('Couleur:N', scale=None)  # Utiliser la couleur définie dans la colonne 'Couleur'
     )
-    chart2=bars+text
+    chart2=bars+text+arrows
     # Afficher le chart dans Streamlit
     st.altair_chart(chart2, use_container_width=True)
     #-------------------------------- evolution des event --------------
@@ -664,7 +663,7 @@ elif page == "Carburant":
 
     st.altair_chart(carbuparyear1, use_container_width=True)
 
-   #-----------  anne mois  ----------   #
+   #----------------------------------------------------- annee mois  -----------------------------------------------------------------------  #
 
     carbu_chart = filtered_carburant.groupby(["ANNEE","MOIS"])["Quantite"].sum().reset_index()
      # Créer le bar chart avec Altair
@@ -674,10 +673,7 @@ elif page == "Carburant":
     y=alt.Y('Quantite', axis=alt.Axis(format='~s')),
     color=alt.Color('ANNEE:N'),
     # column=alt.Column('ANNEE:N', title='Année')
-   ).properties(
-    title='Evolution Consommation Carburant en (L) par Année et Mois',
-
-    )
+    ).properties(title='Evolution Consommation Carburant en (L) par Année et Mois',)
     st.altair_chart(carbuparyear, use_container_width=True)
 
  #-----------  by mois ----------   #
