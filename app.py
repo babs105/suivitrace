@@ -9,28 +9,45 @@ import altair as alt
 
 # Fonction pour générer des données simulées
 
+month_order = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre']
 def generate_trace_data():
-    month_names = [
-    'janvier', 'février', 'mars', 'avril', 'mai', 'juin',
-    'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'
-    ]
-    pat=pd.read_excel('data/PAT/PAT-JUIN-2024.xlsx')
-    pat[pat.isna()] = 0
-    pat['DATE_FR'] = pat['DATE'].dt.strftime('%d/%m/%Y')
-    pat['MOIS'] = pat['DATE'].dt.month.apply(lambda x: month_names[x-1])
-
-    tracemai = pd.read_excel('data/TRACE/EVENT-MAI-2024.xlsx')
-    # print("test",tracemai)
-    tracejuin = pd.read_excel('data/TRACE/EVENT-JUIN-2024.xlsx')
-    trace = pd.concat([tracemai,tracejuin])
-    trace['DATE_FR'] = trace['DATE'].dt.strftime('%d/%m/%Y')
-    trace['MOIS'] = trace['DATE'].dt.month.apply(lambda x: month_names[x-1])
-
-    accident=pd.read_excel('data/TRACE/ACCI-JUIN-2024.xlsx')
-    accident['DATE_FR'] = accident['DATE'].dt.strftime('%d/%m/%Y')
-    accident['MOIS'] = accident['DATE'].dt.month.apply(lambda x: month_names[x-1])
+    # month_names = [
+    # 'janvier', 'février', 'mars', 'avril', 'mai', 'juin',
+    # 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'
+    # ]
+    patmai=pd.read_excel('data/PAT/PAT-MAI-2024.xlsx')
+    patjuin=pd.read_excel('data/PAT/PAT-JUIN-2024.xlsx')
+    pat = pd.concat([patmai,patjuin])
     
-    return pat,trace,accident
+    pat[pat.isna()] = 0
+    # pat['DATE_FR'] = pd.to_datetime(pat['DATE'], format='%d/%m/%Y')
+    # pat['DATE_FR']= pat['DATE'].dt.strftime('%d/%m/%Y')
+    pat['MOIS'] = pat['DATE'].dt.month.apply(lambda x: month_order[x-1])
+    
+
+
+    # print("test",tracemai)
+    # tracejuin = pd.read_excel('data/TRACE/EVENT-JUIN-2024.xlsx')
+    eventmai = pd.read_excel('data/TRACE/EVENT-MAI-2024.xlsx')
+    tracejuin_dict = pd.read_excel('data/TRACE/SUIVI-TRACE-JUIN-2024.xlsx',sheet_name=None)
+    eventjuin = tracejuin_dict.get('evenement')
+
+    event = pd.concat([eventmai,eventjuin])
+
+    # event['DATE_FR'] = event['DATE'].dt.strftime('%d/%m/%Y')
+    event['MOIS'] = event['DATE'].dt.month.apply(lambda x: month_order[x-1])
+
+
+
+    accidentmai=pd.read_excel('data/TRACE/ACCI-MAI-2024.xlsx')
+    accidentjuin=tracejuin_dict.get('accident')
+    # accidentjuin['DATE_FR'] = accidentjuin['DATE'].dt.strftime('%d/%m/%Y')
+   
+    
+    accident = pd.concat([accidentmai,accidentjuin])
+    accident['MOIS'] = accident['DATE'].dt.month.apply(lambda x: month_order[x-1])
+
+    return pat,event,accident
 
 def generate_carburant_data():
 
@@ -87,7 +104,7 @@ def generate_carburant_data():
 
 
 # Charger les données hy
-pat,trace,accident = generate_trace_data()
+pat,event,accident = generate_trace_data()
 carburant = generate_carburant_data()
 # Ajouter une colonne avec les dates formatées en français
 
@@ -111,7 +128,7 @@ page = st.sidebar.radio("Aller à", ["Suivi Tracé","Carburant",""])
 if page == "Suivi Tracé":
     st.sidebar.title("Filtres")
     troncon_filter = st.sidebar.multiselect("Sélectionnez le tronçon", options=pat["SECTEUR"].unique(), default=pat["SECTEUR"].unique())
-    date_filter = st.sidebar.multiselect("Sélectionnez la période",options=trace['MOIS'].unique(),default=trace["MOIS"].unique())
+    date_filter = st.sidebar.multiselect("Sélectionnez la période",options=event['MOIS'].unique(),default=event["MOIS"].unique())
 
 # date_filter = st.sidebar.date_input("Sélectionnez la période", value=[data["date"].min(), data["date"].max()])
     # start_date = pd.to_datetime(date_filter[0])
@@ -119,11 +136,10 @@ if page == "Suivi Tracé":
     # Filtrer les données
     # filtered_pat = pat[(pat["SECTEUR"].isin(troncon_filter)) & (pat["DATE"].between(start_date, end_date))]
     filtered_pat = pat[(pat["SECTEUR"].isin(troncon_filter)) & (pat["MOIS"].isin(date_filter))]
-
     distance_totale = filtered_pat["DISTANCE PARCOURUE"].sum()
     # filtered_trace = trace[(trace["SECTEUR LIEU"].isin(troncon_filter)) & (trace["DATE"].between(start_date, end_date))]
-    filtered_trace = trace[(trace["SECTEUR LIEU"].isin(troncon_filter)) & (trace["MOIS"].isin(date_filter))]
 
+    filtered_trace = event[(event["SECTEUR LIEU"].isin(troncon_filter)) & (event["MOIS"].isin(date_filter))]
     filtered_trace["NATURE EVENEMENT"] = filtered_trace["NATURE EVENEMENT"].where(filtered_trace["NATURE EVENEMENT"].isin(['ACCIDENT', 'PANNE','INCIDENT','VEHICULE EN FEU']),other="AUTRES")
 
     nbre_total_event = filtered_trace["SECTEUR LIEU"].count()
@@ -150,26 +166,27 @@ if page == "Suivi Tracé":
         st.header("Vue d'ensemble : Tronçons non spécifiés correctement")
         secteur=""
     # st.write("Aperçu des données filtrées:")
-    st.write("LA PATROUILLE :")
+    st.write("LA PATROUILLE : 🛣️ 🚗")
+    st.write(f" Distance totale parcourue: :red[{distance_totale} Km ] sur {secteur}")
 
+    #--------------------- ------------------------------------
     distance_chart = filtered_pat.groupby("MOIS")["DISTANCE PARCOURUE"].sum().reset_index()
-
-    month_order = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre']
     distance_chart['MOIS'] = pd.Categorical(distance_chart['MOIS'], categories=month_order, ordered=True)
     distance_chart = distance_chart.sort_values('MOIS')
        # Calculer la variation d'une année à l'autre
 
     distance_chart['Variation'] = distance_chart['DISTANCE PARCOURUE'].diff()
     distance_chart['Variation %'] = distance_chart['DISTANCE PARCOURUE'].pct_change() * 100
+    print("rr",distance_chart)
 
     # Ajouter une colonne pour les flèches, les couleurs et les variations en pourcentage
     def add_arrow_and_color(value, percent):
         if pd.isna(value):
             return '', 'black', ''
         elif value > 0:
-            return f'↑ {percent:.1f}%', 'red', f'{percent:.1f}%'
+            return f'↑ {percent:.0f}%', 'red', f'{percent:.0f}%'
         elif value < 0:
-            return f'↓ {percent:.1f}%', 'green', f'{percent:.1f}%'
+            return f'↓ {percent:.0f}%', 'green', f'{percent:.0f}%'
         else:
             return '→ 0.0%', 'gray', '0.0%'
 
@@ -183,12 +200,12 @@ if page == "Suivi Tracé":
     y=alt.Y('DISTANCE PARCOURUE', axis=alt.Axis(format='~d')),
     # color='DATE'
     ).properties(
-    title='Evolution Distance Parcourue en (km) par mois:'
+    title='Distance Parcourue en (km) par mois:'
     ) 
     text = bars.mark_text(
     align='center',
     baseline='middle',
-    dy=-20,  # Déplace l'étiquette au-dessus de la barre
+    dy=-25,  # Déplace l'étiquette au-dessus de la barre
     color='yellow',
     fontSize=14
     ).encode(
@@ -206,38 +223,149 @@ if page == "Suivi Tracé":
         color=alt.Color('Couleur:N', scale=None)  # Utiliser la couleur définie dans la colonne 'Couleur'
     )
     distparmois=bars+text+arrows
+
     st.altair_chart(distparmois, use_container_width=True)
 
-    st.write(f" Distance totale parcourue: :red[{distance_totale} Km ] sur {secteur}")
-    distance_chart = filtered_pat.groupby("DATE_FR")["DISTANCE PARCOURUE"].sum().reset_index()
+#--------------------------------------------------------------
+
+    distance_chart = filtered_pat.groupby(["SECTEUR","MOIS"])["DISTANCE PARCOURUE"].sum().reset_index()
+
+    distance_chart['MOIS'] = pd.Categorical(distance_chart['MOIS'], categories=month_order, ordered=True)
+    distance_chart = distance_chart.sort_values(['SECTEUR','MOIS'])
+       # Calculer la variation d'une année à l'autre
+
+    distance_chart['Variation'] = distance_chart.groupby(['SECTEUR'])['DISTANCE PARCOURUE'].diff()
+    distance_chart['Variation %'] = distance_chart.groupby(['SECTEUR'])['DISTANCE PARCOURUE'].pct_change() * 100
+   
+
+    # Ajouter une colonne pour les flèches, les couleurs et les variations en pourcentage
+    def add_arrow_and_color(value, percent):
+        if pd.isna(value):
+            return '', 'black', ''
+        elif value > 0:
+            return f'↑ {percent:.0f}%', 'red', f'{percent:.0f}%'
+        elif value < 0:
+            return f'↓ {percent:.0f}%', 'green', f'{percent:.0f}%'
+        else:
+            return '→ 0.0%', 'gray', '0.0%'
+
+    distance_chart[['Flèche', 'Couleur', 'Variation %']] = distance_chart.apply(
+        lambda row: pd.Series(add_arrow_and_color(row['Variation'], row['Variation %'])),
+        axis=1
+    )
      # Créer le bar chart avec Altair
-    chart1 = alt.Chart(distance_chart).mark_line().encode(
-    x=alt.X('DATE_FR', axis=alt.Axis(labelAngle=0)),
+    bars = alt.Chart(distance_chart).mark_bar().encode(
+    x=alt.X('SECTEUR', axis=alt.Axis(labelAngle=90),title=""),
     y=alt.Y('DISTANCE PARCOURUE', axis=alt.Axis(format='~d')),
+    color=alt.Color('SECTEUR:N')
+    ).properties(
+    width=85,
+    title='Distance Parcourue en (km) par mois par TRONÇON:'
+    ) 
+    text = bars.mark_text(
+    align='center',
+    baseline='middle',
+    dy=-25,  # Déplace l'étiquette au-dessus de la barre
+    color='yellow',
+    fontSize=14
+    ).encode(
+        text=alt.Text('DISTANCE PARCOURUE:Q', format='.0f',)
+    )
+         # Ajouter les flèches de variation
+    arrows = bars.mark_text(
+        align='center',
+        baseline='middle',
+        # Déplace l'étiquette avec la flèche au-dessus de l'étiquette de texte
+        dy=-10,
+        fontSize=16,
+    ).encode(
+        text='Flèche:N',
+        color=alt.Color('Couleur:N', scale=None)  # Utiliser la couleur définie dans la colonne 'Couleur'
+    )
+    distparmois = bars + text + arrows
+
+    dist_par_secteur = distparmois.facet(
+        facet=alt.Facet('MOIS', title="VARIATION DISTANCE PARCOURUE PAR TRONCON PAR MOIS"),  # Séparer les graphiques par mois
+        columns=12 # Nombre de colonnes dans la grille de facettes
+    )
+    st.altair_chart(dist_par_secteur, use_container_width=True)
+#------------------------------------------
+
+#---------------------------------------------------------------------------------------
+   
+    distance_chart = filtered_pat.groupby("DATE")["DISTANCE PARCOURUE"].sum().reset_index()
+    # Identifier les valeurs minimales et maximales
+
+    min_value = distance_chart['DISTANCE PARCOURUE'].min()
+    max_value = distance_chart['DISTANCE PARCOURUE'].max()
+
+    # Ajouter une colonne pour la couleur
+    def color_code(row):
+        if row['DISTANCE PARCOURUE'] == min_value:
+            return 'Min'
+        elif row['DISTANCE PARCOURUE'] == max_value:
+            return 'Max'
+     
+
+    distance_chart['distance'] = distance_chart.apply(color_code, axis=1)
+
+    line_chart = alt.Chart(distance_chart).mark_line().encode(
+    x=alt.X('DATE:T', axis=alt.Axis(labelAngle=0, title='Date', format='%d/%m/%Y')),
+    y=alt.Y('DISTANCE PARCOURUE:Q', axis=alt.Axis(format='~d')),
+   
     # color='DATE'
+    tooltip=['DATE', 'DISTANCE PARCOURUE']
     ).properties(
     title='Evolution Distance Parcourue en (km):'
     ) 
+
+    points_chart = alt.Chart(distance_chart).mark_point(size=150,filled=True).encode(
+    x='DATE:T',
+    y='DISTANCE PARCOURUE:Q',
+    color=alt.Color('distance:N', scale=alt.Scale(domain=['Min', 'Max'], range=['red', 'green'])),
+    tooltip=['DATE', 'DISTANCE PARCOURUE']
+    )
+     # Filtrer les données pour les étiquettes Min et Max
+    min_label_data = distance_chart[distance_chart['distance'] == 'Min']
+    max_label_data = distance_chart[distance_chart['distance'] == 'Max']
+
+    # Ajouter les étiquettes pour Min
+    min_labels = alt.Chart(min_label_data).mark_text(
+        align='center',
+        baseline='middle',
+        dy=10  # Décalage horizontal pour éviter de superposer les points
+    ).encode(
+        x='DATE:T',
+        y='DISTANCE PARCOURUE:Q',
+        text=alt.Text('DISTANCE PARCOURUE:Q', format='.0f'),  # Formater le texte pour la distance
+        color=alt.value('red')  # Couleur de l'étiquette Min
+    )
+
+    # Ajouter les étiquettes pour Max
+    max_labels = alt.Chart(max_label_data).mark_text(
+        align='center',
+        baseline='middle',
+        dy=-10  # Décalage horizontal pour éviter de superposer les points
+    ).encode(
+        x='DATE:T',
+        y='DISTANCE PARCOURUE:Q',
+        text=alt.Text('DISTANCE PARCOURUE:Q', format='.0f'),  # Formater le texte pour la distance
+        color=alt.value('green')  # Couleur de l'étiquette Max
+    )
+
+    chart1 = line_chart + points_chart + min_labels + max_labels
     st.altair_chart(chart1, use_container_width=True)
 
-    distance_secteur_chart = filtered_pat.groupby("SECTEUR")["DISTANCE PARCOURUE"].sum().reset_index()
-    # Trier les données par ordre décroissant de 'NOMBRE'
-    distance_secteur_chart_sorted = distance_secteur_chart.sort_values(by='DISTANCE PARCOURUE', ascending=False)
 
-    # Créer le bar chart avec Altair
-    chart = alt.Chart(distance_secteur_chart_sorted).mark_bar().encode(
-    x=alt.X('SECTEUR', axis=alt.Axis(labelAngle=0),scale=alt.Scale(paddingInner=0.5)),
-    y=alt.Y('DISTANCE PARCOURUE', axis=alt.Axis(format='~d')),
-    color=alt.Color('SECTEUR')
-    ).properties(
-    title='Distance Parcourue en (km) par Secteur'
-    ) 
-    st.altair_chart(chart, use_container_width=True)
+
+
+
+ 
 
   
     #### **** event *** ############ **** event **** ####### **** #####
     ########################################### **** event **** #######################################
-    st.write("LES EVENEMENTS:")
+    st.write("LES EVENEMENTS: 🚨🚨")
     st.write(f" Nombre Total Evenement: :red[{nbre_total_event}]  sur  {secteur}")
 
     event_secteur_chart = filtered_trace.groupby("MOIS")["SECTEUR LIEU"].count().reset_index(name='NOMBRE')
@@ -294,101 +422,431 @@ if page == "Suivi Tracé":
     chart2=bars+text+arrows
     # Afficher le chart dans Streamlit
     st.altair_chart(chart2, use_container_width=True)
+    #--------------NOMBRE EVENT PAR TRONCON PAR MOIS-----------
+
+    event_secteur_chart = filtered_trace.groupby(["SECTEUR LIEU",'MOIS'])["SECTEUR LIEU"].count().reset_index(name='NOMBRE')
+    event_secteur_chart['MOIS'] = pd.Categorical(event_secteur_chart['MOIS'], categories=month_order, ordered=True)
+    event_secteur_chart = event_secteur_chart.sort_values(['SECTEUR LIEU','MOIS'])
+       # Calculer la variation d'une année à l'autre
+
+    event_secteur_chart['Variation'] = event_secteur_chart.groupby(['SECTEUR LIEU'])['NOMBRE'].diff()
+    event_secteur_chart['Variation %'] = event_secteur_chart.groupby(['SECTEUR LIEU'])['NOMBRE'].pct_change() * 100
+
+    print("nbrevent",event_secteur_chart)
+
+    # Ajouter une colonne pour les flèches, les couleurs et les variations en pourcentage
+    def add_arrow_and_color(value, percent):
+        if pd.isna(value):
+            return '', 'black', ''
+        elif value > 0:
+            return f'↑ {percent:.1f}%', 'red', f'{percent:.1f}%'
+        elif value < 0:
+            return f'↓ {percent:.1f}%', 'green', f'{percent:.1f}%'
+        else:
+            return '→ 0.0%', 'gray', '0.0%'
+
+    event_secteur_chart[['Flèche', 'Couleur', 'Variation %']] = event_secteur_chart.apply(
+        lambda row: pd.Series(add_arrow_and_color(row['Variation'], row['Variation %'])),
+        axis=1
+    )
+      # Créer le bar chart avec Altair
+    bars = alt.Chart(event_secteur_chart).mark_bar().encode(
+    x=alt.X('SECTEUR LIEU', axis=alt.Axis(labelAngle=90),scale=alt.Scale(paddingInner=0.5)),
+    y=alt.Y('NOMBRE', axis=alt.Axis(format='~d')),
+    color=alt.Color('SECTEUR LIEU')
+    ).properties(
+    width=100,
+    title='NOMBRE EVENEMENT PAR MOIS'
+    ) 
+    text = bars.mark_text(
+    align='center',
+    baseline='middle',
+    dy=-25,  # Déplace l'étiquette au-dessus de la barre
+    color='yellow',
+    fontSize=14
+    ).encode(
+        text=alt.Text('NOMBRE:Q', format='.0f',)
+    )
+           # Ajouter les flèches de variation
+    arrows = bars.mark_text(
+        align='center',
+        baseline='middle',
+        # Déplace l'étiquette avec la flèche au-dessus de l'étiquette de texte
+        dy=-10,
+        fontSize=12,
+    ).encode(
+        text='Flèche:N',
+        color=alt.Color('Couleur:N', scale=None)  # Utiliser la couleur définie dans la colonne 'Couleur'
+    )
+    chart2=bars+text+arrows
+
+    nbrevt_secteur_mois = chart2.facet(
+        facet=alt.Facet('MOIS', title="VARIATION NBRE EVENEMENT PAR TRONCON PAR MOIS"),  # Séparer les graphiques par mois
+        columns=12 # Nombre de colonnes dans la grille de facettes
+    )
+    # Afficher le chart dans Streamlit
+    st.altair_chart(nbrevt_secteur_mois, use_container_width=True)
     #-------------------------------- evolution des event --------------
 
     st.write(f"")
   
 
-    evolu_chart = filtered_trace.groupby("DATE_FR")["SECTEUR LIEU"].count().reset_index(name='NOMBRE')
-     # Créer le bar chart avec Altair
-    # print("evo",evolu_chart)
-    chart6 = alt.Chart(evolu_chart).mark_line().encode(
-    x=alt.X('DATE_FR', axis=alt.Axis(labelAngle=0)),
+    evolu_chart = filtered_trace.groupby("DATE")["SECTEUR LIEU"].count().reset_index(name='NOMBRE')
+
+     # Identifier les valeurs minimales et maximales
+
+    min_value = evolu_chart['NOMBRE'].min()
+    max_value = evolu_chart['NOMBRE'].max()
+
+    # Ajouter une colonne pour la couleur
+    def color_code(row):
+        if row['NOMBRE'] == min_value:
+            return 'Min'
+        elif row['NOMBRE'] == max_value:
+            return 'Max'
+     
+
+    evolu_chart['Nbre Evenement'] = evolu_chart.apply(color_code, axis=1)
+    line_chart = alt.Chart(evolu_chart).mark_line().encode(
+    x=alt.X('DATE:T', axis=alt.Axis(labelAngle=0, title='Date', format='%d/%m/%Y')),
     y=alt.Y('NOMBRE', axis=alt.Axis(format='~s')),
     # color=alt.Color('SECTEUR LIEU', scale=alt.Scale(scheme='tableau10'))
     ).properties(
     title=f"Evolution  Nombre  evénèments  :{secteur}"
     ) 
+    points_chart = alt.Chart(evolu_chart).mark_point(size=150,filled=True).encode(
+    x='DATE:T',
+    y='NOMBRE:Q',
+    color=alt.Color('Nbre Evenement:N', scale=alt.Scale(domain=['Min', 'Max'], range=['red', 'green'])),
+    tooltip=['DATE', 'NOMBRE']
+    )
+     # Filtrer les données pour les étiquettes Min et Max
+    min_label_data = evolu_chart[evolu_chart['Nbre Evenement'] == 'Min']
+    max_label_data = evolu_chart[evolu_chart['Nbre Evenement'] == 'Max']
+
+    # Ajouter les étiquettes pour Min
+    min_labels = alt.Chart(min_label_data).mark_text(
+        align='center',
+        baseline='middle',
+        dy=12  # Décalage horizontal pour éviter de superposer les points
+    ).encode(
+        x='DATE:T',
+        y='NOMBRE:Q',
+        text=alt.Text('NOMBRE:Q', format='.0f'),  # Formater le texte pour la distance
+        color=alt.value('red')  # Couleur de l'étiquette Min
+    )
+
+    # Ajouter les étiquettes pour Max
+    max_labels = alt.Chart(max_label_data).mark_text(
+        align='center',
+        baseline='middle',
+        dy=-12  # Décalage horizontal pour éviter de superposer les points
+    ).encode(
+        x='DATE:T',
+        y='NOMBRE:Q',
+        text=alt.Text('NOMBRE:Q', format='.0f'),  # Formater le texte pour la distance
+        color=alt.value('green')  # Couleur de l'étiquette Max
+    )
+    chart6 =line_chart + points_chart + min_labels + max_labels
     st.altair_chart(chart6, use_container_width=True)
     
-
-
     event_secteur_chart = filtered_trace.groupby("SECTEUR LIEU")["SECTEUR LIEU"].count().reset_index(name='NOMBRE')
       # Créer le bar chart avec Altair
-    chart2 = alt.Chart(event_secteur_chart).mark_bar().encode(
+    bars = alt.Chart(event_secteur_chart).mark_bar().encode(
     x=alt.X('SECTEUR LIEU', axis=alt.Axis(labelAngle=0),scale=alt.Scale(paddingInner=0.5)),
     y=alt.Y('NOMBRE', axis=alt.Axis(format='~s')),
     color=alt.Color('SECTEUR LIEU')
     ).properties(
-    title='EVENEMENT PAR SECTEUR'
+    title='NOMBRE EVENEMENT PAR SECTEUR'
     ) 
+    text= bars.mark_text(
+    align='center',
+    baseline='middle',
+    dy=-10,  # Déplace l'étiquette au-dessus de la barre
+    # color='red',
+    fontSize=12
+    ).encode(
+        text=alt.Text('NOMBRE:Q', format='.0f',)
+    )
+    chart2 = bars +  text 
     # Afficher le chart dans Streamlit
     st.altair_chart(chart2, use_container_width=True)
 
     #------------------------- les ordinateurs de bureau pour vous servir --------------------------------------
     #-------------------------------------------------------nature EVENT-----------------------------------------
     st.write(f"Nature Evenement :")
-
-    nature_event_secteur_chart = filtered_trace.groupby(['DATE_FR',"NATURE EVENEMENT"])["NATURE EVENEMENT"].count().reset_index(name="NOMBRE")
-
-
-        # Créer le graphique à barres côte à côte
-    chart3 = alt.Chart(nature_event_secteur_chart).mark_line().encode(
-        # x=alt.X('NATURE EVENEMENT:N', axis=alt.Axis(title='Secteur'),scale=alt.Scale(paddingInner=0)),
-        x=alt.X('DATE_FR', axis=alt.Axis(labelAngle=0)),
-        y=alt.Y('NOMBRE:Q', axis=alt.Axis(title='Nombre')),
-        color=alt.Color('NATURE EVENEMENT:N'),
-        # column=alt.Column('SECTEUR LIEU:N', title='Secteur')
-    ).properties(
-        title=f"Evolution Nature des Evènements : {secteur}"
-    ).configure_axis(
-        labelAngle=0,
-    )
-    st.altair_chart(chart3, use_container_width=True)
-
-    st.write(f"Nature Evenement :")
     
     nature_event_secteur_chart1 = filtered_trace.groupby("NATURE EVENEMENT")["NATURE EVENEMENT"].count().reset_index(name="NOMBRE")
 
         # Créer le graphique à barres côte à côte
-    chart10 = alt.Chart(nature_event_secteur_chart1).mark_bar().encode(
-        x=alt.X('NATURE EVENEMENT:N', axis=alt.Axis(title=f"Secteur {secteur}"),scale=alt.Scale(paddingInner=0)),
-        y=alt.Y('NOMBRE:Q', axis=alt.Axis(title='Nombre')),
+    bars = alt.Chart(nature_event_secteur_chart1).mark_bar().encode(
+        x=alt.X('NATURE EVENEMENT:N', axis=alt.Axis(labelAngle=0,title=f"Nature Evenement"),scale=alt.Scale(paddingInner=0)),
+        y=alt.Y('NOMBRE:Q', axis=alt.Axis(title='Nombre',format='~d')),
         color=alt.Color('NATURE EVENEMENT:N'),
         # column=alt.Column('SECTEUR LIEU:N', title='Secteur')
     ).properties(
         title='Répartition des événements par Nature'
-    ).configure_axis(
-        labelAngle=0,
     )
-    st.altair_chart(chart10, use_container_width=True)
-    #-------------------------------------------------------------------------------------------------
-#-------------------------------------les gens sont bien organisés pour les détails ---------------------------------------
 
+    text= bars.mark_text(
+        align='center',
+        baseline='middle',
+        dy=-10  # Décalage horizontal pour éviter de superposer les points
+    ).encode(
+        text=alt.Text('NOMBRE:Q', format='.0f'),  # Formater le texte pour la distance
+    )
+    chart10 = bars + text
+    st.altair_chart(chart10, use_container_width=True)
+    #--------------------
+    st.write(f"Evolution Nature Evenement :")
+
+    nature_event_secteur_chart = filtered_trace.groupby(['DATE','NATURE EVENEMENT'])["NATURE EVENEMENT"].count().reset_index(name="NOMBRE")
+    nature_event_panne = nature_event_secteur_chart[nature_event_secteur_chart['NATURE EVENEMENT'] == "PANNE"]
+    nature_event_accident = nature_event_secteur_chart[nature_event_secteur_chart['NATURE EVENEMENT'] == "ACCIDENT"]
+    nature_event_vhl_feu = nature_event_secteur_chart[nature_event_secteur_chart['NATURE EVENEMENT'] == "VEHICULE EN FEU"]
+
+    def min(df):
+        return df['NOMBRE'].min()
+
+    def max(df):
+        return df['NOMBRE'].max()
+    
+    min_panne = min(nature_event_panne)
+    max_panne = max(nature_event_panne)
+    min_acci = min(nature_event_accident)
+    max_acci = max(nature_event_accident)
+    min_vhlfeu = min(nature_event_vhl_feu)
+    max_vhlfeu = max(nature_event_vhl_feu)
+    
+
+    # Ajouter une colonne pour la couleur
+    def color_panne(row):
+        if row['NOMBRE'] == min_panne:
+            return 'Min'
+        elif row['NOMBRE'] == max_panne:
+            return 'Max'
+        # else :
+        #     return 'Normal'
+
+    def color_accident(row):
+        if row['NOMBRE'] == min_acci:
+            return 'Min'
+        elif row['NOMBRE'] == max_acci:
+            return 'Max'
+        # else :
+        #     return 'Normal'
+    
+    def color_vhl_feu(row):
+        if row['NOMBRE'] == min_vhlfeu:
+            return 'Min'
+        elif row['NOMBRE'] == max_vhlfeu:
+            return 'Max'
+        # else :
+        #     return 'Normal'
+
+    nature_event_panne['Panne'] = nature_event_panne.apply(color_panne, axis=1)
+    nature_event_accident['Accident'] = nature_event_accident.apply(color_accident, axis=1)
+    nature_event_vhl_feu['Vehicule en Feu'] = nature_event_vhl_feu.apply(color_vhl_feu, axis=1)
+
+    # Créer le graphique à barres côte à côte
+    panne_chart = alt.Chart(nature_event_panne).mark_line(color='pink').encode(
+        x=alt.X('DATE:T', axis=alt.Axis(labelAngle = 0, title='Date', format='%d/%m/%Y')),
+        y=alt.Y('NOMBRE:Q', axis=alt.Axis(title='Nombre',format='~d')),
+    ).properties(
+     title=f"Evolution Panne: {secteur}"
+    )
+
+    acci_chart = alt.Chart(nature_event_accident).mark_line(color="steelblue").encode(
+        x=alt.X('DATE:T', axis=alt.Axis(labelAngle=0, title='Date', format='%d/%m/%Y')),
+        y=alt.Y('NOMBRE:Q', axis=alt.Axis(title='Nombre',format='~d')),
+    ).properties(
+     title=f"Evolution Accident: {secteur}"
+    )
+
+
+    print("VHL FEU",nature_event_vhl_feu)
+    vhlfeu_chart = alt.Chart(nature_event_vhl_feu).mark_line(color='white').encode(
+        x=alt.X('DATE:T', axis=alt.Axis(labelAngle=0, title='Date', format='%d/%m/%Y')),
+        y=alt.Y('NOMBRE:Q', axis=alt.Axis(title='Nombre',format='~d'))
+    ).properties(
+     title=f"Evolution Vehicule en Feu: {secteur}"
+    )
+
+
+    panne_points_chart = alt.Chart(nature_event_panne).mark_point(size=100,filled=True).encode(
+    x='DATE:T',
+    y='NOMBRE:Q',
+    color=alt.Color('Panne:N',scale=alt.Scale(domain=['Min', 'Max','Normal'], range=['green','red',"pink"]))
+    )
+
+    acci_points_chart = alt.Chart(nature_event_accident).mark_point(size=100,filled=True).encode(
+    x='DATE:T',
+    y='NOMBRE:Q',
+    color=alt.Color('Accident:N',scale=alt.Scale(domain=['Min', 'Max','Normal'], range=['green','red',"steelblue"]))
+    )
+    
+    vhlfeu_points_chart = alt.Chart(nature_event_vhl_feu).mark_point(size=100,filled=True).encode(
+    x='DATE:T',
+    y='NOMBRE:Q',
+    color=alt.Color('Vehicule en Feu:N',scale=alt.Scale(domain=['Min', 'Max','Normal'], range=['green','red','white']))
+   )
+   
+    
+    # Filtrer les données pour les étiquettes Min et Max
+    min_panne_data = nature_event_panne[nature_event_panne['Panne'] == 'Min']
+    max_panne_data = nature_event_panne[nature_event_panne['Panne'] == 'Max']
+    min_acci_data = nature_event_accident[nature_event_accident['Accident'] == 'Min']
+    max_acci_data = nature_event_accident[nature_event_accident['Accident'] == 'Max']
+    min_vhlfeu_data = nature_event_vhl_feu[nature_event_vhl_feu['Vehicule en Feu'] == 'Min']
+    max_vhlfeu_data = nature_event_vhl_feu[nature_event_vhl_feu['Vehicule en Feu']== 'Max']
+
+    # Ajouter les étiquettes pour Min
+    min_label_panne = alt.Chart(min_panne_data).mark_text(
+        align='center',
+        baseline='middle',
+        dy=12  # Décalage horizontal pour éviter de superposer les points
+    ).encode(
+        x='DATE:T',
+        y='NOMBRE:Q',
+        text=alt.Text('NOMBRE:Q', format='.0f'),  # Formater le texte pour la distance
+        color=alt.value('green')  # Couleur de l'étiquette Min
+    )
+
+    # Ajouter les étiquettes pour Max
+    max_label_panne = alt.Chart(max_panne_data).mark_text(
+        align='center',
+        baseline='middle',
+        dy=-12  # Décalage horizontal pour éviter de superposer les points
+    ).encode(
+        x='DATE:T',
+        y='NOMBRE:Q',
+        text=alt.Text('NOMBRE:Q', format='.0f'),  # Formater le texte pour la distance
+        color=alt.value('red')  # Couleur de l'étiquette Max
+    )
+
+    # Ajouter les étiquettes pour Min accident
+    min_label_acci = alt.Chart(min_acci_data).mark_text(
+        align='center',
+        baseline='middle',
+        dy=12  # Décalage horizontal pour éviter de superposer les points
+    ).encode(
+        x='DATE:T',
+        y='NOMBRE:Q',
+        text=alt.Text('NOMBRE:Q', format='.0f'),  # Formater le texte pour la distance
+        color=alt.value('red')  # Couleur de l'étiquette Min
+    )
+
+    # Ajouter les étiquettes pour Max
+    max_label_acci = alt.Chart(max_acci_data).mark_text(
+        align='center',
+        baseline='middle',
+        dy=-12  # Décalage horizontal pour éviter de superposer les points
+    ).encode(
+        x='DATE:T',
+        y='NOMBRE:Q',
+        text=alt.Text('NOMBRE:Q', format='.0f'),  # Formater le texte pour la distance
+        color=alt.value('green')  # Couleur de l'étiquette Max
+    )
+    
+     # Ajouter les étiquettes pour Min accident
+    min_label_vhlfeu = alt.Chart(min_vhlfeu_data).mark_text(
+        align='center',
+        baseline='middle',
+        dy=12  # Décalage horizontal pour éviter de superposer les points
+    ).encode(
+        x='DATE:T',
+        y='NOMBRE:Q',
+        text=alt.Text('NOMBRE:Q', format='.0f'),  # Formater le texte pour la distance
+        color=alt.value('red')  # Couleur de l'étiquette Min
+    )
+
+    # Ajouter les étiquettes pour Max
+    max_label_vhlfeu= alt.Chart(max_vhlfeu_data).mark_text(
+        align='center',
+        baseline='middle',
+        dy=-12  # Décalage horizontal pour éviter de superposer les points
+    ).encode(
+        x='DATE:T',
+        y='NOMBRE:Q',
+        text=alt.Text('NOMBRE:Q', format='.0f'),  # Formater le texte pour la distance
+        color=alt.value('green')  # Couleur de l'étiquette Max
+    )
+
+    panne_line = panne_chart + panne_points_chart + min_label_panne + max_label_panne 
+    acci_line = acci_chart + acci_points_chart + min_label_acci + max_label_acci 
+    vhlfeu_line =vhlfeu_chart + vhlfeu_points_chart + min_label_vhlfeu + max_label_vhlfeu 
+
+    # chart3 = panne_line + acci_line #+ vhlfeu_line 
+    
+    st.altair_chart(panne_line, use_container_width=True)
+    st.altair_chart(acci_line, use_container_width=True)
+    st.altair_chart(vhlfeu_line, use_container_width=True)
+
+
+
+    #-------------------------------------------------------------------------------------------------
+    #-------------------------------------les gens sont bien organisés pour les détails ---------------------------------------
 
     #-------------------------------------------------------- statut event -----------------------------
     st.write(f"Statut Evenement:")
 
     event_statut_secteur_chart = filtered_trace.groupby("STATUT REMORQUAGE OU PATROUILLE")["NATURE EVENEMENT"].count().reset_index(name="NOMBRE")
-
         # Créer le graphique à barres côte à côte
-    chart4 = alt.Chart(event_statut_secteur_chart).mark_bar().encode(
-        x=alt.X('STATUT REMORQUAGE OU PATROUILLE:N', axis=alt.Axis(title=f"Secteur {secteur}"),scale=alt.Scale(paddingInner=0)),
-        y=alt.Y('NOMBRE:Q', axis=alt.Axis(title='Nombre')),
+    bars = alt.Chart(event_statut_secteur_chart).mark_bar().encode(
+        x=alt.X('STATUT REMORQUAGE OU PATROUILLE:N', axis=alt.Axis(title=f"Statut",labelAngle=0),scale=alt.Scale(paddingInner=0)),
+        y=alt.Y('NOMBRE:Q', axis=alt.Axis(title='Nombre',format="~d")),
         color=alt.Color('STATUT REMORQUAGE OU PATROUILLE:N'),
-        # column=alt.Column('SECTEUR LIEU:N', title='SECTEUR')
     ).properties(
-        width=100,
         title=f'Répartition des evenements par statut : {secteur}'
-    ).configure_axis(
-        labelAngle=0,
+    )
+    
+    text = bars.mark_text(
+    align='center',
+    baseline='middle',
+    dy=-15,  # Déplace l'étiquette au-dessus de la barre
+    color='yellow',
+    fontSize=14
+    ).encode(
+        text=alt.Text('NOMBRE:Q', format='.0f')
     )
 
-
+    chart4 = bars + text
     # Afficher le chart dans Streamlit
     st.altair_chart(chart4, use_container_width=True)
 
-        #--------------------------------------------------------
+  #--------------------------------------------------------
+ #-------------------------------------------------------- statut event -----------------------------
+
+    event_statut_secteur_chart = filtered_trace.groupby(["SECTEUR LIEU","STATUT REMORQUAGE OU PATROUILLE"])["NATURE EVENEMENT"].count().reset_index(name="NOMBRE")
+        # Créer le graphique à barres côte à côte
+    bars = alt.Chart(event_statut_secteur_chart).mark_bar().encode(
+        x=alt.X('STATUT REMORQUAGE OU PATROUILLE:N', axis=alt.Axis(title="",labelAngle=90),scale=alt.Scale(paddingInner=0)),
+        y=alt.Y('NOMBRE:Q', axis=alt.Axis(title='Nombre',format="~d")),
+        color=alt.Color('STATUT REMORQUAGE OU PATROUILLE:N'),
+    ).properties(
+        width=250,
+        title=f'Répartition des evenements par statut :'
+    )
+    
+    text = bars.mark_text(
+    align='center',
+    baseline='middle',
+    dy=-15,  # Déplace l'étiquette au-dessus de la barre
+    color='yellow',
+    fontSize=14
+    ).encode(
+        text=alt.Text('NOMBRE:Q', format='.0f')
+    )
+
+    chart4 = bars + text
+    statut_event_secteur = chart4.facet(
+        facet=alt.Facet('SECTEUR LIEU:N', title="STATUT EVENEMENT PAR TRONCON"),  # Séparer les graphiques par mois
+        columns=10 # Nombre de colonnes dans la grille de facettes
+    )
+    # Afficher le chart dans Streamlit
+    st.altair_chart(statut_event_secteur, use_container_width=True)
+
+  #--------------------------------------------------------
     st.write(f"Remorquage:")
     st.write(f"Nombre Total de Véhicule Remorqués: :red[{nbre_total_rom}] ")
 
@@ -418,7 +876,7 @@ if page == "Suivi Tracé":
     )  
     bars = alt.Chart(rom_by_month).mark_bar().encode(
         x=alt.X('MOIS', axis=alt.Axis(labelAngle=0,title='MOIS'),scale=alt.Scale(paddingInner=0)),
-        y=alt.Y('NOMBRE:Q', axis=alt.Axis(title='Nombre')),
+        y=alt.Y('NOMBRE:Q', axis=alt.Axis(title='Nombre',format="~d")),
         # color=alt.Color('TYPES DE VEHICULE:N'),
        
     ).properties(
@@ -451,23 +909,66 @@ if page == "Suivi Tracé":
     # Afficher le chart dans Streamlit
     st.altair_chart(rom_mois, use_container_width=True)
 
-    #------------------------------------------------------------------------------------------------
+    #----------------------------------------- TYPES DE VEHICULE-------------------------------------------------------
 
     rom_secteur_chart = filtered_trace_rom.groupby("TYPES DE VEHICULE")["TYPES DE VEHICULE"].count().reset_index(name="NOMBRE")
-    chart5 = alt.Chart(rom_secteur_chart).mark_bar().encode(
+    bars = alt.Chart(rom_secteur_chart).mark_bar().encode(
         x=alt.X('TYPES DE VEHICULE:N', axis=alt.Axis(title='TYPE VEHICULE',labelAngle=0),scale=alt.Scale(paddingInner=0)),
-        y=alt.Y('NOMBRE:Q', axis=alt.Axis(title='Nombre')),
+        y=alt.Y('NOMBRE:Q', axis=alt.Axis(title='Nombre',format="~d")),
         color=alt.Color('TYPES DE VEHICULE:N'),
        
     ).properties(
         title='Répartition des Types de Vehicule remorqué'
-    ).configure_axis(
-        labelAngle=0,
+    )
+    text = bars.mark_text(
+    align='center',
+    baseline='middle',
+    dy=-15,  # Déplace l'étiquette au-dessus de la barre
+    color='yellow',
+    fontSize=14
+    ).encode(
+        text=alt.Text('NOMBRE:Q', format='.0f',)
     )
 
     # Afficher le chart dans Streamlit
+    chart5 = bars + text
     st.altair_chart(chart5, use_container_width=True)
+    #-----------------------------------------------------------
+    #----------------------------------------- TYPES DE VEHICULE-------------------------------------------------------
+
+    rom_secteur_chart = filtered_trace_rom.groupby(["SECTEUR LIEU","TYPES DE VEHICULE"])["TYPES DE VEHICULE"].count().reset_index(name="NOMBRE")
+    bars = alt.Chart(rom_secteur_chart).mark_bar().encode(
+        # x=alt.X('TYPES DE VEHICULE:N', axis=alt.Axis(title='TYPE VEHICULE',labelAngle=0),scale=alt.Scale(paddingInner=0)),
+        x=alt.X('TYPES DE VEHICULE:N', axis=alt.Axis(title='',labelAngle=0),scale=alt.Scale(paddingInner=0)),
+        
+        y=alt.Y('NOMBRE:Q', axis=alt.Axis(title='Nombre',format="~d")),
+        color=alt.Color('TYPES DE VEHICULE:N'),
+       
+    ).properties(
+        width=250,
+        title='Types de Vehicule remorqué par TRONÇON'
+    )
+    text = bars.mark_text(
+    align='center',
+    baseline='middle',
+    dy=-15,  # Déplace l'étiquette au-dessus de la barre
+    color='yellow',
+    fontSize=14
+    ).encode(
+        text=alt.Text('NOMBRE:Q', format='.0f',)
+    )
+
+    # Afficher le chart dans Streamlit
+    chart5 = bars + text
+
+    type_vhl_secteur = chart5.facet(
+        facet=alt.Facet('SECTEUR LIEU:N', sort=month_order, title="TYPES DE VEHICULE REMORQUES PAR TRONCON"),  # Séparer les graphiques par mois
+        columns=6 # Nombre de colonnes dans la grille de facettes
+    )
+    st.altair_chart(type_vhl_secteur, use_container_width=True)
     ############################################## accident #########################################################
+
+
     st.write(f"Accident:")
     st.write(f" Nombre Total d'Accident: :red[{nbre_total_acci}] ")
     
@@ -500,16 +1001,15 @@ if page == "Suivi Tracé":
         x=alt.X('MOIS', axis=alt.Axis(title='MOIS',labelAngle=0),scale=alt.Scale(paddingInner=0)),
         y=alt.Y('NOMBRE:Q', axis=alt.Axis(title='Nombre')),
         # color=alt.Color('TRONÇON:N'),
-       
     ).properties(
         title="Nombre d'accident par MOIS"
     )
     text = bars.mark_text(
-    align='center',
-    baseline='middle',
-    dy=-25,  # Déplace l'étiquette au-dessus de la barre
-    color='yellow',
-    fontSize=14
+        align='center',
+        baseline='middle',
+        dy=-24,  # Déplace l'étiquette au-dessus de la barre
+        color='yellow',
+        fontSize=14
     ).encode(
         text=alt.Text('NOMBRE:Q', format='.0f',)
     )
@@ -519,75 +1019,130 @@ if page == "Suivi Tracé":
         baseline='middle',
         # dx=-40,  # Déplace l'étiquette avec la flèche au-dessus de l'étiquette de texte
         dy=-10,
-        fontSize=16,
+        fontSize=14,
         # dx=5,
         # color='red'
     ).encode(
         text='Flèche:N',
         color=alt.Color('Couleur:N', scale=None)  # Utiliser la couleur définie dans la colonne 'Couleur'
     )
-    acci_mois=bars+text+arrows
+    acci_mois = bars + text + arrows
     # Afficher le chart dans Streamlit
     st.altair_chart(acci_mois, use_container_width=True)
     
    #--------------------------------------------------------------------------------------------------
+
     accident_chart = filtered_accident.groupby("TRONÇON")["TRONÇON"].count().reset_index(name="NOMBRE")
     
 
     # Créer le graphique à barres côte à côte
-    chart7 = alt.Chart(accident_chart).mark_bar().encode(
-        x=alt.X('TRONÇON:N', axis=alt.Axis(title='Secteur'),scale=alt.Scale(paddingInner=0)),
+    bars = alt.Chart(accident_chart).mark_bar().encode(
+        x=alt.X('TRONÇON:N', axis=alt.Axis(title='Secteur',labelAngle=0),scale=alt.Scale(paddingInner=0)),
         y=alt.Y('NOMBRE:Q', axis=alt.Axis(title='Nombre')),
         color=alt.Color('TRONÇON:N'),
        
     ).properties(
-        title="Nombre d'accident"
-    ).configure_axis(
-        labelAngle=0,
+        title="Nombre d'accident par SECTEUR"
     )
+
+    text = bars.mark_text(
+    align='center',
+    baseline='middle',
+    dy=-10,  # Déplace l'étiquette au-dessus de la barre
+    color='yellow',
+    fontSize=14
+    ).encode(
+        text=alt.Text('NOMBRE:Q', format='.0f',)
+    )
+    chart7 = bars + text
 
     # Afficher le chart dans Streamlit
     st.altair_chart(chart7, use_container_width=True)
     #-------------------------------------------------------type accident ------------------
-    st.write("Type d'accident")
+    # st.write("Type d'accident")
 
     type_accident_chart = filtered_accident.groupby("TYPES ACCIDENTS")["TYPES ACCIDENTS"].count().reset_index(name="NOMBRE")
 
     #     # Créer le graphique à barres côte à côte
-    chart8 = alt.Chart(type_accident_chart).mark_bar().encode(
-        x=alt.X("TYPES ACCIDENTS:N", axis=alt.Axis(title='TYPE'),scale=alt.Scale(paddingInner=0)),
-        y=alt.Y('NOMBRE:Q', axis=alt.Axis(title='Nombre')),
+    bars = alt.Chart(type_accident_chart).mark_bar().encode(
+        x=alt.X("TYPES ACCIDENTS:N", axis=alt.Axis(title='TYPE',labelAngle=0),scale=alt.Scale(paddingInner=0)),
+        y=alt.Y('NOMBRE:Q', axis=alt.Axis(title='Nombre',format="~d")),
         color=alt.Color('TYPES ACCIDENTS:N'),
        
     ).properties(
         title="Les Types d'accident"
-    ).configure_axis(
-        labelAngle=0,
     )
+
+    text = bars.mark_text(
+    align='center',
+    baseline='middle',
+    dy=-10,  # Déplace l'étiquette au-dessus de la barre
+    color='yellow',
+    fontSize=14
+    ).encode(
+        text=alt.Text('NOMBRE:Q', format='.0f',)
+    )
+    chart8 = bars + text
 
     # # Afficher le chart dans Streamlit
     st.altair_chart(chart8, use_container_width=True)
-        #-------------------------------------------------------type Victimes ------------------
-    st.write("Type de Victimes")
 
-    victimes_accident_chart = filtered_accident.groupby(["TRONÇON"])[["BLESSES LEGERS","BLESSES GRAVES","MORTS"]].sum().stack().reset_index(name="NOMBRE")
-    
-    # Renommer la colonne level_1 en TYPE DE VICTIMES
-    victimes_accident_chart = victimes_accident_chart.rename(columns={"level_1": "TYPE DE VICTIMES"})
+
+    #-------------------------------------------------------type accident ------------------
+    # st.write("Type d'accident par secteur")
+
+    type_accident_chart = filtered_accident.groupby(["TRONÇON","TYPES ACCIDENTS"])["TYPES ACCIDENTS"].count().reset_index(name="NOMBRE")
+
     #     # Créer le graphique à barres côte à côte
-    chart8 = alt.Chart(victimes_accident_chart).mark_bar().encode(
-        x=alt.X("TYPE DE VICTIMES:N", axis=alt.Axis(title='TYPE'),scale=alt.Scale(paddingInner=0)),
-        y=alt.Y('NOMBRE:Q', axis=alt.Axis(title='Nombre')),
-        color=alt.Color('TYPE DE VICTIMES:N'),
+    bars = alt.Chart(type_accident_chart).mark_bar().encode(
+        x=alt.X("TYPES ACCIDENTS:N", axis=alt.Axis(title='',labelAngle=0),scale=alt.Scale(paddingInner=0)),
+        y=alt.Y('NOMBRE:Q', axis=alt.Axis(title='Nombre',format="~d")),
+        color=alt.Color('TYPES ACCIDENTS:N'),
        
     ).properties(
-        title="Les Victimes"
-    ).configure_axis(
-        labelAngle=0,
+        width=350,
+        title="Les Types d'accident par TRONÇON"
+    )
+
+    text = bars.mark_text(
+    align='center',
+    baseline='middle',
+    dy=-10,  # Déplace l'étiquette au-dessus de la barre
+    color='yellow',
+    fontSize=14
+    ).encode(
+        text=alt.Text('NOMBRE:Q', format='.0f',)
+    )
+    chart8 = bars + text
+
+    type_acci_secteur = chart8.facet(
+        facet=alt.Facet('TRONÇON:N', title="TYPES D'ACCIDENT PAR TRONCON"),  # Séparer les graphiques par mois
+        columns=10 # Nombre de colonnes dans la grille de facettes
     )
 
     # # Afficher le chart dans Streamlit
-    st.altair_chart(chart8, use_container_width=True)
+    st.altair_chart(type_acci_secteur, use_container_width=True)
+        #-------------------------------------------------------type Victimes ------------------
+    # st.write("Type de Victimes")
+
+    # victimes_accident_chart = filtered_accident.groupby(["TRONÇON"])[["BLESSES LEGERS","BLESSES GRAVES","MORTS"]].sum().stack().reset_index(name="NOMBRE")
+    
+    # # Renommer la colonne level_1 en TYPE DE VICTIMES
+    # victimes_accident_chart = victimes_accident_chart.rename(columns={"level_1": "TYPE DE VICTIMES"})
+    # #     # Créer le graphique à barres côte à côte
+    # chart8 = alt.Chart(victimes_accident_chart).mark_bar().encode(
+    #     x=alt.X("TYPE DE VICTIMES:N", axis=alt.Axis(title='TYPE'),scale=alt.Scale(paddingInner=0)),
+    #     y=alt.Y('NOMBRE:Q', axis=alt.Axis(title='Nombre')),
+    #     color=alt.Color('TYPE DE VICTIMES:N'),
+       
+    # ).properties(
+    #     title="Les Victimes"
+    # ).configure_axis(
+    #     labelAngle=0,
+    # )
+
+    # # # Afficher le chart dans Streamlit
+    # st.altair_chart(chart8, use_container_width=True)
     #####################################################################################################
 
 
@@ -606,6 +1161,8 @@ elif page == "Carburant":
     filtered_carburant = carburant[(carburant["ANNEE"].isin(annee_filter)) & (carburant["MOIS"].isin(mois_filter))]
    
     carbu_chart = filtered_carburant.groupby(["ANNEE"])["Quantite"].sum().reset_index()
+
+
     # Calculer la variation d'une année à l'autre
     carbu_chart['Variation'] = carbu_chart['Quantite'].diff()
     carbu_chart['Variation %'] = carbu_chart['Quantite'].pct_change() * 100
@@ -615,9 +1172,9 @@ elif page == "Carburant":
         if pd.isna(value):
             return '', 'black', ''
         elif value > 0:
-            return f'↑ {percent:.1f}%', 'red', f'{percent:.1f}%'
+            return f'↑ {percent:.0f}%', 'red', f'{percent:.0f}%'
         elif value < 0:
-            return f'↓ {percent:.1f}%', 'green', f'{percent:.1f}%'
+            return f'↓ {percent:.0f}%', 'green', f'{percent:.0f}%'
         else:
             return '→ 0.0%', 'gray', '0.0%'
 
@@ -634,6 +1191,7 @@ elif page == "Carburant":
     # color=alt.Color('ANNEE:N', scale=alt.Scale(scheme='tableau10')),
     # column=alt.Column('ANNEE:N', title='Année')
    ).properties(
+   
     title='Evolution Consommation Carburant en (L) par Année et Mois',
 
     )
@@ -644,7 +1202,7 @@ elif page == "Carburant":
     color='yellow',
     fontSize=14
     ).encode(
-        text=alt.Text('Quantite:Q', format='.2f',)
+        text=alt.Text('Quantite:Q', format='.0f',)
     )
       # Ajouter les flèches de variation
     arrows = bars.mark_text(
@@ -664,16 +1222,97 @@ elif page == "Carburant":
     st.altair_chart(carbuparyear1, use_container_width=True)
 
    #----------------------------------------------------- annee mois  -----------------------------------------------------------------------  #
+    
+    carbu_chart = filtered_carburant.groupby(["MOIS","ANNEE"])["Quantite"].sum().reset_index()
+    carbu_chart['MOIS'] = pd.Categorical(carbu_chart['MOIS'], categories=month_order, ordered=True)
+    carbu_chart['ANNEE'] = pd.Categorical(carbu_chart['ANNEE'], categories=['2022','2023','2024'], ordered=True)
+    carbu_chart = carbu_chart.sort_values(['MOIS','ANNEE'])
+   
+    carbu_chart['Variation'] = carbu_chart.groupby('MOIS')['Quantite'].diff()
+    carbu_chart['Variation %'] = carbu_chart.groupby('MOIS')['Quantite'].pct_change() * 100
 
-    carbu_chart = filtered_carburant.groupby(["ANNEE","MOIS"])["Quantite"].sum().reset_index()
-     # Créer le bar chart avec Altair
-    print("CARBU",carbu_chart)
-    carbuparyear = alt.Chart(carbu_chart).mark_bar().encode(
-    x=alt.X('MOIS',sort=month_order,axis=alt.Axis(labelAngle=0)),
-    y=alt.Y('Quantite', axis=alt.Axis(format='~s')),
-    color=alt.Color('ANNEE:N'),
-    # column=alt.Column('ANNEE:N', title='Année')
-    ).properties(title='Evolution Consommation Carburant en (L) par Année et Mois',)
+
+
+     # Déterminer les valeurs min et max
+    min_value = carbu_chart['Quantite'].min()
+    max_value = carbu_chart['Quantite'].max()
+
+  
+    def add_arrow_and_color(value, percent):
+        if pd.isna(value):
+            return '', 'black', ''
+        elif value > 0:
+            return f'↑ {percent:.0f}%', 'red', f'{percent:.0f}%'
+        elif value < 0:
+            return f'↓ {percent:.0f}%', 'green', f'{percent:.0f}%'
+        else:
+            return '→ 0%', 'gray', '0%'
+
+     # # Ajouter une colonne pour la couleur
+    def color_code(row):
+        if row['Quantite'] == min_value:
+            return 'Min'
+        elif row['Quantite'] == max_value:
+            return 'Max'
+        else:
+            return str(row['ANNEE'])
+    
+    carbu_chart['Conso'] = carbu_chart.apply(color_code, axis=1)
+    carbu_chart[['Flèche', 'Couleur', 'Variation %']] = carbu_chart.apply(
+        lambda row: pd.Series(add_arrow_and_color(row['Variation'], row['Variation %'])),
+        axis=1
+    )
+
+    color_scale = alt.Scale(domain=[
+        'Min', 'Max','2022','2023','2024'
+    ], range=[
+        'green', 'red', 'steelblue','azure','pink'
+
+    ])
+    
+    bars = alt.Chart(carbu_chart).mark_bar().encode(
+        x=alt.X('ANNEE',axis=alt.Axis(labelAngle=90)),
+        y=alt.Y('Quantite', axis=alt.Axis(format='~d')),
+        # color=alt.Color('ANNEE:N'),
+        # color=alt.Color('Conso:N', scale=color_scale)  # Couleur des barres par combinaison année et consommation
+        # column=alt.Column('ANNEE:N', title='Année')
+        color=alt.Color('Conso:N', scale=color_scale,)  # Utiliser la couleur définie dans la colonne 'Couleur'
+    
+    ).properties(
+        width=60,  # Largeur des graphiques individuels
+        height=300,  # Hauteur des graphiques individuels
+        title='Évolution de la Consommation de Carburant (L) par Année et Mois'  # Titre du graphique
+    )
+
+    
+    # Ajouter des étiquettes de texte aux barres
+    text = bars.mark_text(
+        align='center',  # Aligner le texte au centre de la barre
+        dy=-15,  # Déplacer l'étiquette au-dessus de la barre
+        fontSize=10  # Taille de la police
+    ).encode(
+        text=alt.Text('Quantite:Q', format='.0f')  # Texte de l'étiquette avec formatage sans décimales
+    )
+       # Ajouter les flèches de variation
+    arrows = bars.mark_text(
+        align='center',
+        baseline='middle',
+        # Déplace l'étiquette avec la flèche au-dessus de l'étiquette de texte
+        dy=-5,
+        fontSize=10,
+    ).encode(
+        text='Flèche:N',
+        color=alt.Color('Couleur:N', scale=None)  # Utiliser la couleur définie dans la colonne 'Couleur'
+    )
+    # Combiner les barres et les étiquettes de texte
+    bars_with_text = bars + text + arrows
+
+    # Appliquer la facette
+    carbuparyear = bars_with_text.facet(
+        facet=alt.Facet('MOIS:N', sort=month_order, title='MOIS'),  # Séparer les graphiques par mois
+        columns=12  # Nombre de colonnes dans la grille de facettes
+    )
+
     st.altair_chart(carbuparyear, use_container_width=True)
 
  #-----------  by mois ----------   #
@@ -699,7 +1338,6 @@ elif page == "Carburant":
         else:
             return '→ 0.0%', 'gray', '0.0%'
 
-   
 
     # # Ajouter une colonne pour la couleur
     def color_code(row):
@@ -724,7 +1362,7 @@ elif page == "Carburant":
     ).properties(
     title='Evolution Consommation Carburant en (L) par mois:'
     ) 
-    text= bars.mark_text(
+    text= alt.Chart(carbu_chart).mark_text(
     align='center',
     baseline='middle',
     dy=-25,  # Déplace l'étiquette au-dessus de la barre
