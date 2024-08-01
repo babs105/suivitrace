@@ -17,7 +17,8 @@ def generate_trace_data():
     # ]
     patmai=pd.read_excel('data/PAT/PAT-MAI-2024.xlsx')
     patjuin=pd.read_excel('data/PAT/PAT-JUIN-2024.xlsx')
-    pat = pd.concat([patmai,patjuin])
+    patjuillet=pd.read_excel('data/PAT/PAT-JUILLET-2024.xlsx')
+    pat = pd.concat([patmai,patjuin,patjuillet])
     
     pat[pat.isna()] = 0
     # pat['DATE_FR'] = pd.to_datetime(pat['DATE'], format='%d/%m/%Y')
@@ -31,8 +32,9 @@ def generate_trace_data():
     eventmai = pd.read_excel('data/TRACE/EVENT-MAI-2024.xlsx')
     tracejuin_dict = pd.read_excel('data/TRACE/SUIVI-TRACE-JUIN-2024.xlsx',sheet_name=None)
     eventjuin = tracejuin_dict.get('evenement')
+    eventjuillet = pd.read_excel('data/TRACE/EVENT-JUILLET-2024.xlsx')
 
-    event = pd.concat([eventmai,eventjuin])
+    event = pd.concat([eventmai,eventjuin,eventjuillet])
 
     # event['DATE_FR'] = event['DATE'].dt.strftime('%d/%m/%Y')
     event['MOIS'] = event['DATE'].dt.month.apply(lambda x: month_order[x-1])
@@ -41,10 +43,11 @@ def generate_trace_data():
 
     accidentmai=pd.read_excel('data/TRACE/ACCI-MAI-2024.xlsx')
     accidentjuin=tracejuin_dict.get('accident')
+    accidentjuillet=pd.read_excel('data/TRACE/ACCI-JUILLET-2024.xlsx')
     # accidentjuin['DATE_FR'] = accidentjuin['DATE'].dt.strftime('%d/%m/%Y')
    
     
-    accident = pd.concat([accidentmai,accidentjuin])
+    accident = pd.concat([accidentmai,accidentjuin,accidentjuillet])
     accident['MOIS'] = accident['DATE'].dt.month.apply(lambda x: month_order[x-1])
 
     return pat,event,accident
