@@ -1365,20 +1365,19 @@ elif page == "Carburant":
     ).properties(
     title='Evolution Consommation Carburant en (L) par mois:'
     ) 
-    text= alt.Chart(carbu_chart).mark_text(
+    text = bars.mark_text(
     align='center',
-    baseline='middle',
-    dy=-25,  # Déplace l'étiquette au-dessus de la barre
+    # baseline='middle',
+    dy=-24,  # Déplace l'étiquette au-dessus de la barre
     # color='red',
-    fontSize=12
+    fontSize=14
     ).encode(
-        text=alt.Text('Quantite:Q', format='.0f',)
+    text=alt.Text('Quantite:Q', format='.0f',)
     )
       # Ajouter les flèches de variation
     arrows = bars.mark_text(
         align='center',
         baseline='middle',
-        # Déplace l'étiquette avec la flèche au-dessus de l'étiquette de texte
         dy=-10,
         fontSize=16,
     ).encode(
